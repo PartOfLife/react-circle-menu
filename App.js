@@ -12,16 +12,12 @@ const items = [
     color: "#30A400",
   },
   {
-    name: "search",
+    name: "map-marker",
     color: "#30A400",
   },
   {
     name: "cog",
     color: "#8A39FF",
-  },
-  {
-    name: "map-marker",
-    color: "#FF6A00",
   },
 ];
 
@@ -29,6 +25,7 @@ export default function App() {
   return (
     <View style={styles.container}>
       <CircleMenu items={items} />
+      {/* <Test /> */}
     </View>
   );
 }
@@ -36,7 +33,7 @@ export default function App() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#000",
+    // backgroundColor: "#000",
     alignItems: "center",
     justifyContent: "center",
   },

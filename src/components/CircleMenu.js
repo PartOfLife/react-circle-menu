@@ -1,56 +1,90 @@
-import React, { useEffect, useRef } from "react";
-import { View, Text, Animated, StyleSheet, PanResponder } from "react-native";
+import React, { Component } from "react";
+import { View, Animated, StyleSheet, TouchableHighlight } from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome";
+import SubButton from "./subButton";
 
-const CircleMenu = (props) => {
-  const fadeAnim = useRef(new Animated.Value(0)).current;
-  const { items } = props;
+class CircleMenu extends Component {
+  state = {
+    valueMode: 0,
+  };
+  buttonSize = new Animated.Value(1);
+  mode = new Animated.Value(0);
 
-  useEffect(() => {
-    Animated.timing(fadeAnim, {
-      toValue: 1,
-      duration: 10000,
-    }).start();
-  }, []);
+  handlePress = () => {
+    Animated.sequence([
+      Animated.timing(this.buttonSize, {
+        toValue: 0.95,
+        duration: 200,
+      }),
+      Animated.timing(this.buttonSize, {
+        toValue: 1,
+      }),
+      Animated.timing(this.mode, {
+        toValue: this.mode._value === 0 ? 1 : 0,
+        duration: 300,
+      }),
+    ]).start();
+    this.setState({ valueMode: this.state.valueMode === 0 ? 1 : 0 });
+  };
 
-  const renderItems = () => {
+  rendersubButtons = () => {
+    const { items } = this.props;
+
     return (
       items.length > 0 &&
-      items.map((item) => {
+      items.map((item, index) => {
         return (
-          <View
-            style={[
-              styles.iconBox,
-              { backgroundColor: item.color ? item.color : "" },
-            ]}
-          >
-            <Icon name={item.name} size={20} color="#fff" />
-          </View>
+          <SubButton
+            key={item.name}
+            item={item}
+            mode={this.mode}
+            itemIndex={index}
+          />
         );
       })
     );
   };
 
-  return (
-    <Animated.View style={{ ...props.style, opacity: fadeAnim }}>
-      <View style={styles.iconBox}>
-        <Icon name="bars" size={20} color="black" />
+  render() {
+    const sizeStyle = {
+      transform: [{ scale: this.buttonSize }],
+    };
+
+    return (
+      <View
+        style={{
+          position: "relative",
+        }}
+      >
+        {this.rendersubButtons()}
+        <Animated.View style={[styles.menuButton, sizeStyle]}>
+          <TouchableHighlight
+            onPress={this.handlePress}
+            underlayColor="#565555"
+            style={styles.menuButton}
+          >
+            <Animated.View>
+              <Icon
+                name={this.state.valueMode === 0 ? "bars" : "times"}
+                size={24}
+                color="#fff"
+              />
+            </Animated.View>
+          </TouchableHighlight>
+        </Animated.View>
       </View>
-      {renderItems()}
-    </Animated.View>
-  );
-};
+    );
+  }
+}
 
 const styles = StyleSheet.create({
-  iconBox: {
-    width: 50,
-    height: 50,
-    justifyContent: "center",
+  menuButton: {
+    backgroundColor: "#000",
     alignItems: "center",
-    backgroundColor: "#fff",
-    borderRadius: 50,
-    // backgroudColor: "white",
-    elevation: 10,
+    justifyContent: "center",
+    width: 60,
+    height: 60,
+    borderRadius: 30,
   },
 });
 
