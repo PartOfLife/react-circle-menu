@@ -1,10 +1,10 @@
 import React, { Component } from "react";
 import {
-  View,
   Animated,
   StyleSheet,
   TouchableHighlight,
   PanResponder,
+  Dimensions,
 } from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome";
 import SubButton from "./subButton";
@@ -38,9 +38,20 @@ class CircleMenu extends Component {
     onPanResponderMove: (event, gesture) => {
       this.pan.setValue({ x: gesture.dx, y: gesture.dy });
     },
-    onPanResponderRelease: (e, gesture) => {
-      // this.setState({ coordinates: { x: gesture.dx, y: gesture.dy } });
+    onPanResponderRelease: (event, gesture) => {
+      const { moveX, moveY } = gesture;
+      const halfScreenWidth = Dimensions.get("window").width / 2;
+      const halfScreenHeight = Dimensions.get("window").height / 2;
+
+      let xPoint = halfScreenWidth - 30;
+      const yPoint = moveY - halfScreenHeight - 30;
+
+      if (moveX < halfScreenWidth) {
+        xPoint = -xPoint;
+      }
+
       this.pan.flattenOffset();
+      this.pan.setValue({ x: xPoint, y: yPoint });
     },
   });
 
