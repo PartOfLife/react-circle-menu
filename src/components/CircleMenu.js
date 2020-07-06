@@ -1,30 +1,75 @@
 import React, { Component } from "react";
-import { View, Animated, StyleSheet, TouchableHighlight } from "react-native";
+import {
+  View,
+  Animated,
+  StyleSheet,
+  TouchableHighlight,
+  PanResponder,
+} from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome";
 import SubButton from "./subButton";
 
 class CircleMenu extends Component {
   state = {
     valueMode: 0,
+    coordinates: { x: 0, y: 0 },
+    isOpenMenu: false,
   };
   buttonSize = new Animated.Value(1);
   mode = new Animated.Value(0);
+  pan = new Animated.ValueXY();
+  panResponder = PanResponder.create({
+    onStartShouldSetPanResponder: () => {
+      return true;
+    },
+
+    onMoveShouldSetPanResponder: (event, gesture) => {
+      const { dx, dy } = gesture;
+      return (dx > 2 || dx < -2 || dy > 2 || dy < -2) && !this.state.isOpenMenu;
+    },
+
+    onPanResponderGrant: () => {
+      this.pan.setOffset({
+        x: this.pan.x._value,
+        y: this.pan.y._value,
+      });
+    },
+
+    onPanResponderMove: (event, gesture) => {
+      this.pan.setValue({ x: gesture.dx, y: gesture.dy });
+    },
+    onPanResponderRelease: (e, gesture) => {
+      // this.setState({ coordinates: { x: gesture.dx, y: gesture.dy } });
+      this.pan.flattenOffset();
+    },
+  });
 
   handlePress = () => {
-    Animated.sequence([
-      Animated.timing(this.buttonSize, {
-        toValue: 0.95,
-        duration: 200,
+    Animated.parallel([
+      Animated.spring(this.pan, {
+        toValue: { x: 0, y: 0 },
       }),
-      Animated.timing(this.buttonSize, {
-        toValue: 1,
-      }),
-      Animated.timing(this.mode, {
-        toValue: this.mode._value === 0 ? 1 : 0,
-        duration: 300,
-      }),
-    ]).start();
-    this.setState({ valueMode: this.state.valueMode === 0 ? 1 : 0 });
+      Animated.sequence([
+        Animated.timing(this.buttonSize, {
+          toValue: 0.95,
+          duration: 200,
+        }),
+        Animated.timing(this.buttonSize, {
+          toValue: 1,
+        }),
+        Animated.timing(this.mode, {
+          toValue: this.mode._value === 0 ? 1 : 0,
+          duration: 200,
+        }),
+      ]),
+    ]).start(() => {
+      this.setState((prevState) => {
+        return {
+          valueMode: prevState.valueMode === 0 ? 1 : 0,
+          isOpenMenu: !prevState.isOpenMenu,
+        };
+      });
+    });
   };
 
   rendersubButtons = () => {
@@ -50,29 +95,39 @@ class CircleMenu extends Component {
       transform: [{ scale: this.buttonSize }],
     };
 
+    const buttonMovement = {
+      transform: [{ translateX: this.pan.x, translateY: this.pan.y }],
+    };
+
     return (
-      <View
-        style={{
-          position: "relative",
-        }}
+      <Animated.View
+        style={[
+          {
+            position: "relative",
+          },
+          this.pan.getLayout(),
+        ]}
       >
         {this.rendersubButtons()}
-        <Animated.View style={[styles.menuButton, sizeStyle]}>
+        <Animated.View
+          style={[styles.menuButton, sizeStyle]}
+          {...this.panResponder.panHandlers}
+        >
           <TouchableHighlight
-            onPress={this.handlePress}
-            underlayColor="#565555"
             style={styles.menuButton}
+            underlayColor="#ccc"
+            onPress={this.handlePress}
           >
             <Animated.View>
               <Icon
-                name={this.state.valueMode === 0 ? "bars" : "times"}
+                name={this.state.valueMode ? "times" : "bars"}
                 size={24}
                 color="#fff"
               />
             </Animated.View>
           </TouchableHighlight>
         </Animated.View>
-      </View>
+      </Animated.View>
     );
   }
 }
@@ -85,6 +140,7 @@ const styles = StyleSheet.create({
     width: 60,
     height: 60,
     borderRadius: 30,
+    zIndex: 10000,
   },
 });
 

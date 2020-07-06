@@ -25,7 +25,6 @@ export default function App() {
   return (
     <View style={styles.container}>
       <CircleMenu items={items} />
-      {/* <Test /> */}
     </View>
   );
 }
