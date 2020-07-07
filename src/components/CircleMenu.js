@@ -1,90 +1,129 @@
-import React, { Component } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import {
+  View,
   Animated,
   StyleSheet,
   TouchableHighlight,
+  TouchableWithoutFeedback,
   PanResponder,
   Dimensions,
 } from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome";
 import SubButton from "./subButton";
 
-class CircleMenu extends Component {
-  state = {
-    valueMode: 0,
-    coordinates: { x: 0, y: 0 },
-    isOpenMenu: false,
-  };
-  buttonSize = new Animated.Value(1);
-  mode = new Animated.Value(0);
-  pan = new Animated.ValueXY();
-  panResponder = PanResponder.create({
-    onStartShouldSetPanResponder: () => {
-      return true;
-    },
+const CircleMenu = (props) => {
+  const [modeValue, setModeValue] = useState(0);
+  const [coordinates, setCoordinates] = useState({ x: 0, y: 0 });
+  const buttonSize = useRef(new Animated.Value(1)).current;
+  const mode = useRef(new Animated.Value(0)).current;
+  const pan = useRef(
+    new Animated.ValueXY({
+      x: Dimensions.get("window").width / 2 - 30,
+      y: -Dimensions.get("window").width + 100,
+    })
+  ).current;
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => {
+        return true;
+      },
 
-    onMoveShouldSetPanResponder: (event, gesture) => {
-      const { dx, dy } = gesture;
-      return (dx > 2 || dx < -2 || dy > 2 || dy < -2) && !this.state.isOpenMenu;
-    },
+      onMoveShouldSetPanResponder: (event, gesture) => {
+        const { dx, dy } = gesture;
+        return (dx > 2 || dx < -2 || dy > 2 || dy < -2) && mode._value === 0;
+      },
 
-    onPanResponderGrant: () => {
-      this.pan.setOffset({
-        x: this.pan.x._value,
-        y: this.pan.y._value,
-      });
-    },
+      onPanResponderGrant: () => {
+        pan.setOffset({
+          x: pan.x._value,
+          y: pan.y._value,
+        });
+      },
 
-    onPanResponderMove: (event, gesture) => {
-      this.pan.setValue({ x: gesture.dx, y: gesture.dy });
-    },
-    onPanResponderRelease: (event, gesture) => {
-      const { moveX, moveY } = gesture;
-      const halfScreenWidth = Dimensions.get("window").width / 2;
-      const halfScreenHeight = Dimensions.get("window").height / 2;
+      onPanResponderMove: (event, gesture) => {
+        pan.setValue({ x: gesture.dx, y: gesture.dy });
+      },
+      onPanResponderRelease: (event, gesture) => {
+        const { moveX, moveY } = gesture;
+        const halfScreenWidth = Dimensions.get("window").width / 2;
+        const halfScreenHeight = Dimensions.get("window").height / 2;
 
-      let xPoint = halfScreenWidth - 30;
-      const yPoint = moveY - halfScreenHeight - 30;
+        let xPoint = halfScreenWidth - 30;
+        const yPoint = moveY - halfScreenHeight - 30;
 
-      if (moveX < halfScreenWidth) {
-        xPoint = -xPoint;
-      }
+        if (moveX < halfScreenWidth) {
+          xPoint = -xPoint;
+        }
 
-      this.pan.flattenOffset();
-      this.pan.setValue({ x: xPoint, y: yPoint });
-    },
-  });
+        setModeValue(0);
+        setCoordinates({ x: xPoint, y: yPoint });
+        mode._value = 0;
 
-  handlePress = () => {
-    Animated.parallel([
-      Animated.spring(this.pan, {
-        toValue: { x: 0, y: 0 },
-      }),
-      Animated.sequence([
-        Animated.timing(this.buttonSize, {
-          toValue: 0.95,
-          duration: 200,
-        }),
-        Animated.timing(this.buttonSize, {
-          toValue: 1,
-        }),
-        Animated.timing(this.mode, {
-          toValue: this.mode._value === 0 ? 1 : 0,
-          duration: 200,
-        }),
-      ]),
-    ]).start(() => {
-      this.setState((prevState) => {
-        return {
-          valueMode: prevState.valueMode === 0 ? 1 : 0,
-          isOpenMenu: !prevState.isOpenMenu,
-        };
-      });
+        pan.flattenOffset();
+        Animated.spring(pan, {
+          toValue: { x: xPoint, y: yPoint },
+        }).start(() => {
+          pan.setValue({ x: xPoint, y: yPoint });
+        });
+      },
+    })
+  ).current;
+
+  useEffect(() => {
+    setCoordinates({
+      x: Dimensions.get("window").width / 2 - 30,
+      y: -Dimensions.get("window").width + 100,
     });
+  }, []);
+
+  const handleClose = () => {
+    setModeValue(0);
+    Animated.sequence([
+      Animated.timing(buttonSize, {
+        toValue: 0.95,
+        duration: 200,
+      }),
+      Animated.timing(buttonSize, {
+        toValue: 1,
+      }),
+      Animated.timing(mode, {
+        toValue: 0,
+        duration: 200,
+      }),
+      Animated.spring(pan, {
+        toValue: { x: coordinates.x, y: coordinates.y },
+      }),
+    ]).start();
   };
 
-  rendersubButtons = () => {
-    const { items } = this.props;
+  const handlePress = () => {
+    if (modeValue === 0) {
+      setModeValue(1);
+      Animated.parallel([
+        Animated.spring(pan, {
+          toValue: { x: 0, y: 0 },
+        }),
+        Animated.sequence([
+          Animated.timing(buttonSize, {
+            toValue: 0.95,
+            duration: 200,
+          }),
+          Animated.timing(buttonSize, {
+            toValue: 1,
+          }),
+          Animated.timing(mode, {
+            toValue: 1,
+            duration: 200,
+          }),
+        ]),
+      ]).start();
+    } else {
+      handleClose();
+    }
+  };
+
+  const rendersubButtons = () => {
+    const { items } = props;
 
     return (
       items.length > 0 &&
@@ -93,7 +132,7 @@ class CircleMenu extends Component {
           <SubButton
             key={item.name}
             item={item}
-            mode={this.mode}
+            mode={mode}
             itemIndex={index}
           />
         );
@@ -101,47 +140,49 @@ class CircleMenu extends Component {
     );
   };
 
-  render() {
-    const sizeStyle = {
-      transform: [{ scale: this.buttonSize }],
-    };
+  const sizeStyle = {
+    transform: [{ scale: buttonSize }],
+  };
 
-    const buttonMovement = {
-      transform: [{ translateX: this.pan.x, translateY: this.pan.y }],
-    };
+  const buttonMovement = {
+    transform: [{ translateX: pan.x, translateY: pan.y }],
+  };
 
-    return (
-      <Animated.View
-        style={[
-          {
-            position: "relative",
-          },
-          this.pan.getLayout(),
-        ]}
-      >
-        {this.rendersubButtons()}
+  return (
+    <TouchableWithoutFeedback onPress={handleClose}>
+      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
         <Animated.View
-          style={[styles.menuButton, sizeStyle]}
-          {...this.panResponder.panHandlers}
+          style={[
+            {
+              position: "relative",
+            },
+            pan.getLayout(),
+          ]}
         >
-          <TouchableHighlight
-            style={styles.menuButton}
-            underlayColor="#ccc"
-            onPress={this.handlePress}
+          {rendersubButtons()}
+          <Animated.View
+            style={[styles.menuButton, sizeStyle]}
+            {...panResponder.panHandlers}
           >
-            <Animated.View>
-              <Icon
-                name={this.state.valueMode ? "times" : "bars"}
-                size={24}
-                color="#fff"
-              />
-            </Animated.View>
-          </TouchableHighlight>
+            <TouchableHighlight
+              style={styles.menuButton}
+              underlayColor="#ccc"
+              onPress={handlePress}
+            >
+              <Animated.View>
+                <Icon
+                  name={modeValue === 1 ? "times" : "bars"}
+                  size={24}
+                  color="#fff"
+                />
+              </Animated.View>
+            </TouchableHighlight>
+          </Animated.View>
         </Animated.View>
-      </Animated.View>
-    );
-  }
-}
+      </View>
+    </TouchableWithoutFeedback>
+  );
+};
 
 const styles = StyleSheet.create({
   menuButton: {
